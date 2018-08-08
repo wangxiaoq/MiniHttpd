@@ -7,28 +7,11 @@
 #include <unistd.h>
 #include <string>
 
+#include "mini-httpd.h"
+
 const unsigned int HTTP_PORT = 80;
 #define MAX_BUF_LEN 4096
 #define SERVER_STRING "Server: MiniHttpd"
-
-class HTTPDaemon {
-private:
-    std::string ip_addr_str;
-    unsigned int ip_addr;
-    const unsigned int port;
-    const std::string server_string;
-    int daemonize();    /* become a daemon */
-    int create_tcp_server(int type, struct sockaddr *addr, socklen_t len, int qlen);
-    int serve_client_request(int csockfd, char* request, int len);
-    void accept_request_and_serve(int sockfd);
-
-public:
-    HTTPDaemon(const unsigned int p, const std::string &s, const std::string &ip): port(p), server_string(s), ip_addr_str(ip) 
-    {
-        ip_addr = inet_addr(ip.c_str());
-    }
-    int start_httpd();
-};
 
 /* initialize as a daemon */
 int HTTPDaemon::daemonize()
@@ -113,12 +96,18 @@ void HTTPDaemon::accept_request_and_serve(int sockfd)
 
 int HTTPDaemon::start_httpd(void)
 {
+    int ret = 0;
     int server_fd = 0;
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
         .sin_port = htons(port),
     };
     addr.sin_addr.s_addr = ip_addr;
+
+    ret = daemonize();
+    if (ret < 0) {
+        return ret;
+    }
 
     server_fd = create_tcp_server(SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), 5);
     if (server_fd < 0) {
