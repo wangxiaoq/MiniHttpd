@@ -167,11 +167,17 @@ static int exec_cgi(int sock_fd, char *method, char *path, char *parameter)
             return -1;
         }
         if (setenv("METHOD", method, 1) ||
-            setenv("URL", path, 1) ||
-            setenv("QUERY-STRING", parameter, 1) ||
-            setenv("CONTENT-LENGTH", len_str, 1)) {
+            setenv("URL", path, 1)) {
             exit(-1);
         }
+
+        if (parameter && setenv("QUERY-STRING", parameter, 1)) {
+            exit(-1);
+        }
+        if (!strcasecmp("POST", method) && setenv("CONTENT-LENGTH", len_str, 1)) {
+            exit(-1);
+        }
+
         ret = execl(path, path, NULL);
         exit(ret);
     } else {
